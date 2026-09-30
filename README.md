@@ -11,6 +11,8 @@ finds a shorter placement order for the two-nozzle head, and saves HEX safely wi
 
 > Windows desktop app · Windows 7 or later · .NET Framework 4.0 · x86
 
+![FlyerSMT H8 Editor](https://i.postimg.cc/2jc18tZ8/Untitled.png)
+
 ## Features
 
 - All `FlyerSMT` settings for `PCB` / `Feeders` / `Components` tabs
@@ -22,8 +24,6 @@ finds a shorter placement order for the two-nozzle head, and saves HEX safely wi
 - Import / export components via `CSV` files
 - Undo / redo, only the changed bytes are written to `H8` file
 - Backup copy is made before the first save
-
----
 
 ## The `.H8` format
 
