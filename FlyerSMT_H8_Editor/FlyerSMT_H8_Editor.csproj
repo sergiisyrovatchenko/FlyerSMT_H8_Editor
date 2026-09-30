@@ -1,0 +1,59 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <!-- .NET Framework 4.0, 32-bit: runs on Windows 7 (and XP SP3) with any .NET 4.x installed -->
+    <TargetFramework>net40</TargetFramework>
+    <PlatformTarget>x86</PlatformTarget>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AssemblyName>FlyerSMT_H8_Editor</AssemblyName>
+    <RootNamespace>FlyerSMT_H8_Editor</RootNamespace>
+    <!-- Build output goes straight to ..\Bin (next to the solution), without Release\net40 subfolders. -->
+    <OutputPath>$(MSBuildProjectDirectory)\..\Bin\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+    <Description>Compare, edit and optimize pick-and-place FlyerSMT .H8 files</Description>
+    <ApplicationIcon>FlyerSMT_H8_Editor.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="FlyerSMT_H8_Editor.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Drawing" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!-- Lets Visual Studio open MainForm, PcbView, FeedersView and ComponentsView in the Windows Forms designer. -->
+  <ItemGroup>
+    <Compile Update="MainForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="MainForm.Designer.cs">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </Compile>
+    <Compile Update="FeedersView.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="FeedersView.Designer.cs">
+      <DependentUpon>FeedersView.cs</DependentUpon>
+    </Compile>
+    <Compile Update="PcbView.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="PcbView.Designer.cs">
+      <DependentUpon>PcbView.cs</DependentUpon>
+    </Compile>
+    <Compile Update="ComponentsView.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="ComponentsView.Designer.cs">
+      <DependentUpon>ComponentsView.cs</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+</Project>
