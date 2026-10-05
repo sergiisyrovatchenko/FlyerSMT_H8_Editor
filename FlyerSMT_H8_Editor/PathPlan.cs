@@ -94,21 +94,44 @@ namespace FlyerSMT_H8_Editor
             return items.ToArray();
         }
 
-        // Head travel for this order, mm. visit null = length only (the optimizer). No helper calls: it runs
-        // millions of times
-        public static double Run(Item[] items, int[] order, Visit visit = null)
+        // Where the simulation stands before a component: everything carried from one component to the next.
+        // The optimizer keeps one per position, so a change in the order is measured from the first changed place
+        internal struct State
+        {
+            public double Total, X, Y;          // travel so far, head position
+            public bool Started;                // the head has made its first stop
+            public int Held0, Held1;            // held items in pick order; -1 = none
+            public int Nozzle0, Nozzle1;        // their nozzles
+            public int Cycle;
+
+            public static State Initial => new State { Held0 = -1, Held1 = -1 };
+        }
+
+        // Head travel for this order, mm. visit null = length only (the optimizer)
+        public static double Run(Item[] items, int[] order, Visit visit = null) => Run(items, order, 0, State.Initial, null, visit);
+
+        // Head travel for this order, going on from state, the state before order[from]. states (optional, one more
+        // than the order) receives the state before every position from "from" on. The result is the same, bit for
+        // bit, as a run from the start: the same additions in the same order. No helper calls: it runs millions of times
+        public static double Run(Item[] items, int[] order, int from, State state, State[] states, Visit visit = null)
         {
             const int N1 = (int)Nozzles.N1, N2 = (int)Nozzles.N2;
-            double total = 0, px = 0, py = 0, dx, dy;
-            bool started = false;
-            int held0 = -1, held1 = -1;   // held items in pick order
-            int nozzle0 = 0, nozzle1 = 0; // their nozzles
-            int cycle = 0;
+            double total = state.Total, px = state.X, py = state.Y, dx, dy;
+            bool started = state.Started;
+            int held0 = state.Held0, held1 = state.Held1;
+            int nozzle0 = state.Nozzle0, nozzle1 = state.Nozzle1;
+            int cycle = state.Cycle;
 
             // Each stop below: dx = x - px; dy = y - py; if (started) total += sqrt(..): travel from the first stop
 
-            for (int n = 0; n <= order.Length; n++)
+            for (int n = from; n <= order.Length; n++)
             {
+                if (states != null)
+                    states[n] = new State
+                    {
+                        Total = total, X = px, Y = py, Started = started,
+                        Held0 = held0, Held1 = held1, Nozzle0 = nozzle0, Nozzle1 = nozzle1, Cycle = cycle,
+                    };
                 bool end = n == order.Length;
                 int k = end ? -1 : order[n];
                 int mask = end ? 0 : items[k].Mask;

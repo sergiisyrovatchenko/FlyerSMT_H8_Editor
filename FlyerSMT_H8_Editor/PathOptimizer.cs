@@ -92,10 +92,15 @@ namespace FlyerSMT_H8_Editor
             }
         }
 
-        // First-improvement local search: swap two, move one elsewhere, reverse a run; until nothing helps
+        // First-improvement local search: swap two, move one elsewhere, reverse a run; until nothing helps.
+        // A changed order is measured from its first changed place on (Length with from), with the simulation
+        // state saved before every place of the current order; an accepted change saves the states anew from there
         private static double Improve(PathSim.Item[] items, int[] a, double len, SearchClock clock)
         {
             int n = a.Length;
+            var states = new PathSim.State[n + 1];
+            PathSim.Run(items, a, 0, PathSim.State.Initial, states);
+
             bool improved = true;
             while (improved && !clock.Up)
             {
@@ -104,25 +109,26 @@ namespace FlyerSMT_H8_Editor
                     for (int j = i + 1; j < n; j++)
                     {
                         Swap(a, i, j);
-                        double l = Length(items, a);
-                        if (l < len - 1e-9) { len = l; improved = true; clock.Found(l); }
+                        double l = Length(items, a, i, states);
+                        if (l < len - 1e-9) { len = l; improved = true; clock.Found(l); Keep(items, a, i, states); }
                         else Swap(a, i, j);
                     }
                 for (int i = 0; i < n && !clock.Up; i++)
                     for (int j = 0; j < n; j++)
                     {
                         if (j == i || j == i - 1) continue;
+                        int from = Math.Min(i, j);
                         Move(a, i, j);
-                        double l = Length(items, a);
-                        if (l < len - 1e-9) { len = l; improved = true; clock.Found(l); }
+                        double l = Length(items, a, from, states);
+                        if (l < len - 1e-9) { len = l; improved = true; clock.Found(l); Keep(items, a, from, states); }
                         else Move(a, j, i); // back where it was
                     }
                 for (int i = 0; i < n - 2 && !clock.Up; i++)
                     for (int j = i + 2; j < n; j++)
                     {
                         Array.Reverse(a, i, j - i + 1);
-                        double l = Length(items, a);
-                        if (l < len - 1e-9) { len = l; improved = true; clock.Found(l); }
+                        double l = Length(items, a, i, states);
+                        if (l < len - 1e-9) { len = l; improved = true; clock.Found(l); Keep(items, a, i, states); }
                         else Array.Reverse(a, i, j - i + 1);
                     }
             }
@@ -161,6 +167,19 @@ namespace FlyerSMT_H8_Editor
         {
             _evaluations++;
             return PathSim.Run(items, order);
+        }
+
+        // Head travel for an order that matches the one states was saved for up to position from
+        private static double Length(PathSim.Item[] items, int[] order, int from, PathSim.State[] states)
+        {
+            _evaluations++;
+            return PathSim.Run(items, order, from, states[from], null);
+        }
+
+        // The order changed from position from on: the states saved from there on are refreshed
+        private static void Keep(PathSim.Item[] items, int[] order, int from, PathSim.State[] states)
+        {
+            PathSim.Run(items, order, from, states[from], states);
         }
     }
 }

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Windows.Forms;
 
@@ -78,24 +79,33 @@ namespace FlyerSMT_H8_Editor
             }
         }
 
-        // PropertyInfo per row type and name: every edit compares every cell
-        private static readonly Dictionary<Type, Dictionary<string, PropertyInfo>> PropertyCache =
-            new Dictionary<Type, Dictionary<string, PropertyInfo>>();
+        private PropertyInfo Property(string prop) => GetType().GetProperty(prop);
 
-        private PropertyInfo Property(string prop)
+        // Compiled getter per row type and property: every edit reads every cell three times (shown, saved, other
+        // file), and PropertyInfo.GetValue is several times slower
+        private static readonly Dictionary<Type, Dictionary<string, Func<GridRow, object>>> GetterCache =
+            new Dictionary<Type, Dictionary<string, Func<GridRow, object>>>();
+
+        private Func<GridRow, object> Getter(string prop)
         {
-            if (!PropertyCache.TryGetValue(GetType(), out var byName))
-                PropertyCache[GetType()] = byName = new Dictionary<string, PropertyInfo>();
-            if (!byName.TryGetValue(prop, out var p))
-                byName[prop] = p = GetType().GetProperty(prop);
-            return p;
+            var type = GetType();
+            if (!GetterCache.TryGetValue(type, out var byName))
+                GetterCache[type] = byName = new Dictionary<string, Func<GridRow, object>>();
+            if (!byName.TryGetValue(prop, out var getter))
+            {
+                // row => (object)((TRow)row).Prop
+                var row = Expression.Parameter(typeof(GridRow), "row");
+                var value = Expression.Property(Expression.Convert(row, type), type.GetProperty(prop));
+                byName[prop] = getter = Expression.Lambda<Func<GridRow, object>>(Expression.Convert(value, typeof(object)), row).Compile();
+            }
+            return getter;
         }
 
         // The text a column is compared and shown by (tooltips, menus); overridden where the cell shows only
         // part of the value
         public virtual string Display(string prop, string format)
         {
-            object value = Property(prop).GetValue(this, null);
+            object value = Getter(prop)(this);
             if (value is IFormattable formattable && !string.IsNullOrEmpty(format))
                 return formattable.ToString(format, Formats.Inv);
             return value == null ? "" : Convert.ToString(value, Formats.Inv);

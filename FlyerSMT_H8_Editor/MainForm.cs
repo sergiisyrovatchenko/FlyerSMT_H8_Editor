@@ -136,6 +136,15 @@ namespace FlyerSMT_H8_Editor
             private readonly MainForm _owner;
             private byte[] _baseline;  // bytes as read from disk (or as last saved)
             private H8File _savedFile; // _baseline parsed: the reference for the pink "edited" highlight
+            private Dictionary<int, H8Component> _savedByOffset; // _savedFile's components by record place
+
+            // The bytes on disk become the reference for "edited" and for the next save
+            private void SetBaseline(byte[] bytes, string path)
+            {
+                _baseline = bytes;
+                _savedFile = H8File.Parse(bytes, path);
+                _savedByOffset = _savedFile.Components.ToDictionary(c => c.Offset);
+            }
 
             public int Number { get; private set; }
             public H8File File { get; private set; }
@@ -269,9 +278,9 @@ namespace FlyerSMT_H8_Editor
                 {
                     if (_savedFile == null || File == null) return null;
                     // The same record in the saved file (by its place in the file: numbers shift after a delete)
-                    int offset = ((ComponentRow)row).Component.Offset;
-                    var saved = _savedFile.Components.FirstOrDefault(c => c.Offset == offset);
-                    return saved == null ? null : new ComponentRow(saved, _savedFile);
+                    return _savedByOffset.TryGetValue(((ComponentRow)row).Component.Offset, out var saved)
+                        ? new ComponentRow(saved, _savedFile)
+                        : null;
                 };
                 g.SwapData = (a, b) => H8Component.SwapValues(((ComponentRow)a).Component, ((ComponentRow)b).Component);
                 // Grey when its feeder is switched off, as on the Feeders tab
@@ -381,8 +390,7 @@ namespace FlyerSMT_H8_Editor
                 {
                     var bytes = System.IO.File.ReadAllBytes(path);
                     File = H8File.Parse(bytes, path);
-                    _baseline = bytes;
-                    _savedFile = H8File.Parse(bytes, path);
+                    SetBaseline(bytes, path);
                     ResetHistory();
                     PathBox.Text = path;
                     _owner.tabs.SelectedTab = FeederPage;
@@ -557,9 +565,8 @@ namespace FlyerSMT_H8_Editor
                     if (!System.IO.File.Exists(BackupPath))
                         WriteSafely(BackupPath, _baseline);
                     WriteSafely(File.Path, bytes);
-                    _baseline = bytes;
                     File = H8File.Parse(bytes, File.Path);
-                    _savedFile = H8File.Parse(bytes, File.Path);
+                    SetBaseline(bytes, File.Path);
                     ResetHistory(); // earlier states refer to the file as it was before this save
                 }
                 catch (Exception ex)
